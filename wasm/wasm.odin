@@ -6,8 +6,11 @@ main :: proc() {
 	
 }
 
+counter := 0
+
 @(export)
 tick :: proc() {
-	fmt.println("tick")
+	counter += 1
+	fmt.println(counter)
 }
 

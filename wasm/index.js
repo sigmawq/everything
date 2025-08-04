@@ -13,9 +13,11 @@
 	const number2 = document.getElementById("number2");
 	const result = document.getElementById("result");
 
+	let i = 1;
 	button.addEventListener("click", () => {
 		// Call our exported function and show the result!
 		exports.tick();
-		result.innerText = 1;
+		i++;
+		result.innerText = i;
 	});
 })();
