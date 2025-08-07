@@ -16,6 +16,8 @@ import "core:strconv"
 	3. Variable field length (1 or 2 bytes)
 */ 
 
+OMIT_ZERO_VALUES :: #config(REFLECT_PACKER_OMIT_ZERO, false)
+
 // Field IDs that are greater than 0 are valid. Field ID that is 0 is invalid. Field ID that is less than 0 can be a control token.
 Control_Token_Or_Field_Id :: enum i8 {
     End = -1,
@@ -108,9 +110,13 @@ _pack :: proc(typeinfo: ^reflect.Type_Info, pointer: rawptr, buffer: ^Buffer) ->
 			
 			for field_id, field_data in field_map {
 				field_size := reflect.size_of_typeid(field_data.type.id)
-				if mem.check_zero_ptr(pointer, field_size) {
-					continue
+				
+				when OMIT_ZERO_VALUES {
+					if mem.check_zero_ptr(pointer, field_size) {
+						continue
+					}
 				}
+				
 				buffer_write(buffer, Control_Token_Or_Field_Id(field_id))
 				pointer := rawptr(uintptr(pointer) + field_data.offset)
 				if !_pack(field_data.type, pointer, buffer) {
