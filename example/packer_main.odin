@@ -13,11 +13,15 @@ Foo :: struct {
 	c: f32 `id:"3"`,
 	d: i32 `id:"4"`,
 	e: i128 `id:"5"`,
+	f: [6]i8 `id:"6"`,
 }
 
 basic_example :: proc() {
 	buffer := packer.buffer_make(5 * 1024 * 1024)
-	foo1 := Foo{0xcdcdcd, 255, 3.14, 600, 650}
+	foo1 := Foo{0xcdcdcd, 255, 3.14, 600, 650, {} }
+	foo1.f = {
+		1, 2, 5, -1, -5, 0,
+	}
 	ok := packer.pack(foo1, &buffer)
 	if !ok {	
 		panic("failed to pack")
@@ -36,8 +40,6 @@ basic_example :: proc() {
 	assert(foo1 == foo2)
 	
 	fmt.printf("unpacked struct: %#v\n", foo2)
-	ratio := f64(buffer.i) / f64(size_of(foo2))
-	fmt.printf("len(buffer) / sizeof(Foo): %f\n", ratio)
 }
 
 benchmark :: proc() {
@@ -48,6 +50,9 @@ benchmark :: proc() {
 		foo.c = auto_cast rand.int63_max(1_000_000)
 		foo.d = auto_cast rand.int63_max(1_000_000)
 		foo.e = auto_cast rand.int63_max(1_000_000)
+		for i in 0..<len(foo.f) {
+			foo.f[i] = auto_cast rand.int63_max(35)
+		}
 	}
 	
 	out := packer.buffer_make(1 * 1024 * 1024 * 1024)

@@ -72,6 +72,24 @@ prepare_struct :: proc(T: typeid) {
 	serializer_struct_mapping[T] = field_map
 }
 
+is_simple_type :: proc(typeinfo: ^reflect.Type_Info) -> bool {
+	#partial switch v in reflect.type_info_core(typeinfo).variant {
+		case reflect.Type_Info_Boolean, 
+			reflect.Type_Info_Integer, 
+			reflect.Type_Info_Float,
+			reflect.Type_Info_Rune,      
+			reflect.Type_Info_Complex,   	
+			reflect.Type_Info_Quaternion,
+			reflect.Type_Info_Enum,
+			reflect.Type_Info_Bit_Set,
+			reflect.Type_Info_Simd_Vector,
+			reflect.Type_Info_Matrix: 
+				return true
+	}
+	
+	return false
+}
+
 pack :: proc(something: any, buffer: ^Buffer) -> bool {
 	typeinfo := type_info_of(something.id)
 	return _pack(typeinfo, something.data, buffer)
@@ -102,14 +120,21 @@ _pack :: proc(typeinfo: ^reflect.Type_Info, pointer: rawptr, buffer: ^Buffer) ->
 			
 			buffer_write(buffer, Control_Token_Or_Field_Id.End)
     	case reflect.Type_Info_Array:
-			for i in 0..<variant.count {
-            	if !_pack(
-            		variant.elem, 
-            		rawptr(uintptr(pointer) + uintptr(i * variant.elem_size)), 
-            		buffer) {
-            			return false
-            		}
-			}
+    		if is_simple_type(variant.elem) {
+    			element_size := variant.elem.size
+    			element_count := variant.count
+    			array_total_size_in_bytes := element_size * element_count
+    			buffer_write_ptr(buffer, pointer, array_total_size_in_bytes)		
+    		} else {
+    			for i in 0..<variant.count {
+	            	if !_pack(
+	            		variant.elem, 
+	            		rawptr(uintptr(pointer) + uintptr(i * variant.elem_size)), 
+	            		buffer) {
+	            			return false
+	            		}
+				}
+    		}
     	case:
     	   fmt.panicf("Cannot serialize the following type: %v", variant)
     }
@@ -159,12 +184,20 @@ _unpack :: proc(typeinfo: ^reflect.Type_Info, pointer: rawptr, buffer: ^Buffer) 
 				}
 			}
     	case reflect.Type_Info_Array:
-			for i in 0..<variant.count {
-            	_unpack(
-            		variant.elem, 
-            		rawptr(uintptr(pointer) + uintptr(i * variant.elem_size)), 
-            		buffer)
-			}
+    		if is_simple_type(variant.elem) {
+    			element_size := variant.elem.size
+    			element_count := variant.count
+    			array_total_size_in_bytes := element_size * element_count
+    			buffer_read_ptr(buffer, pointer, array_total_size_in_bytes)
+    		} else {
+    			for i in 0..<variant.count {
+	            	_unpack(
+	            		variant.elem, 
+	            		rawptr(uintptr(pointer) + uintptr(i * variant.elem_size)), 
+	            		buffer)
+				}
+    		}
+			
     	case:
     	   fmt.println(variant)
     	   panic("I don't know how to deserialize this type!")
