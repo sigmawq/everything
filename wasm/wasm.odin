@@ -2,9 +2,7 @@ package main
 
 import "core:fmt"
 
-main :: proc() {
-	
-}
+main :: proc() {}
 
 counter := 0
 
