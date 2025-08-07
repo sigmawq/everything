@@ -10,8 +10,14 @@ import "core:strings"
 import "core:slice"
 import "core:strconv"
 
+/*
+	1. Variable integer encoding
+	2. Length for buffers (i.e strings, byte buffer and etc)
+	3. Variable field length (1 or 2 bytes)
+*/ 
+
 // Field IDs that are greater than 0 are valid. Field ID that is 0 is invalid. Field ID that is less than 0 can be a control token.
-Control_Token_Or_Field_Id :: enum i16 {
+Control_Token_Or_Field_Id :: enum i8 {
     End = -1,
 }
 
@@ -24,8 +30,7 @@ prepare_struct :: proc(T: typeid) {
 
 	typeinfo := type_info_of(T)
 	if !reflect.is_struct(type_info_of(T)) {
-		fmt.println("typeid %v is NOT a struct", T)
-		panic("!")
+		fmt.panicf("something different from a struct passed into prepare_struct(): ", T)
 	}
 	
 	struct_fields := reflect.struct_fields_zipped(typeinfo.id)
@@ -47,6 +52,12 @@ prepare_struct :: proc(T: typeid) {
             continue
         }
         
+        if id > 127 || id < 0 {
+        	fmt.printf("struct %v, field %v, id=%v is too big, maximum value of 127 is allowed\n", 
+        		T, field.name, id)
+        	valid = false
+        }
+        
         _, already_has_this_id := field_map[Control_Token_Or_Field_Id(id)]
         if already_has_this_id {
         	fmt.printf("struct %v, field %v (id %v) already in use\n", T, field.name, id)
@@ -56,7 +67,7 @@ prepare_struct :: proc(T: typeid) {
 	}
 	
 	if !valid {
-		panic("struct is invalid")
+		panic("struct is not invalid")
 	}
 	serializer_struct_mapping[T] = field_map
 }
@@ -100,8 +111,7 @@ _pack :: proc(typeinfo: ^reflect.Type_Info, pointer: rawptr, buffer: ^Buffer) ->
             		}
 			}
     	case:
-    	   fmt.println(variant)
-    	   panic("I don't know how to serialize this type!")
+    	   fmt.panicf("Cannot serialize the following type: %v", variant)
     }
     
     return true
