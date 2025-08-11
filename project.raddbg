@@ -1,0 +1,15 @@
+// raddbg 0.9.20 project file
+
+recent_file: path: "example/packer_main.odin"
+recent_file: path: "reflect_packer/packer.odin"
+target:
+{
+  executable: "packer_main.exe"
+  working_directory: ""
+  enabled: 1
+}
+breakpoint:
+{
+  source_location: "example/packer_main.odin:97:1"
+  hit_count: 1
+}
